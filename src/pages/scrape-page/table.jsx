@@ -73,10 +73,10 @@ function ScrapeTable() {
             },
             render: (text, record) => (
               <Input
-                value={text}
-                onChange={(event) =>
+                onBlur={(event) =>
                   updateBrandItem(record.id, { name: event.target.value })
                 }
+                defaultValue={text}
               ></Input>
             ),
           },

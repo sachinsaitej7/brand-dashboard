@@ -50,9 +50,10 @@ export default function VaraintTable({ data }) {
         <>
           <span style={{ marginBottom: "4px" }}>Scraped Value: {text}</span>
           <Input
-            value={text}
+            defaultValue={text}
+            disabled={record.status === "approved"}
             type='number'
-            onChange={(e) =>
+            onBlur={(e) =>
               updateBrandItemVariant(data.id, record.id, {
                 price: {
                   ...record.price,
@@ -146,6 +147,7 @@ function ColorSingleSelect({ data, record }) {
   return (
     <Select
       loading={loading}
+      disabled={record.status === "approved"}
       placeholder='Choose Color'
       onChange={onSelect}
       style={{ width: "100%" }}
@@ -194,6 +196,7 @@ function SizeSingleSelect({ record, data }) {
       fieldNames={{ label: "name", value: "id" }}
       options={options}
       value={record.size?.values}
+      disabled={record.status === "approved"}
     />
   );
 }

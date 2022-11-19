@@ -1,6 +1,6 @@
 import { getFirebase } from "../../firebase";
 
-import { collection, query, where } from "firebase/firestore";
+import { collection, query, where, orderBy } from "firebase/firestore";
 import { useCollectionData } from "react-firebase-hooks/firestore";
 
 export function getIdConverter() {
@@ -21,7 +21,7 @@ const productVariantColRef = collection(db, "productVariant").withConverter(
 );
 
 export function useProducts(brandId) {
-  const productsQuery = query(productColRef, where("brand.id", "==", brandId));
+  const productsQuery = query(productColRef, where("brand.id", "==", brandId), orderBy("updatedAt", "desc"));
   return useCollectionData(productsQuery);
 }
 

@@ -26,4 +26,5 @@ ui-debug.log
 /.firebase
 /mock_data
 firestore-debug.log
+firebase-debug.log
 
