@@ -14,6 +14,7 @@ import {
   updateDoc,
   deleteDoc,
   getDocs,
+  serverTimestamp,
 } from "firebase/firestore";
 
 import {
@@ -45,16 +46,27 @@ const sizeColRef = collection(db, "size").withConverter(idConverter);
 export function useProducts(brandId) {
   const brandsQuery = query(
     brandItemColRef,
-    where("brandId", "==", brandId),
+    where("brand.id", "==", brandId),
     where("createdType", "==", "scrape")
   );
   return useCollectionData(brandsQuery);
 }
 
+export function useProductVariants(productId) {
+  const q = query(collection(db, 'brandItem', productId, 'variants').withConverter(idConverter));
+  return useCollectionData(q);
+}
+
+export function useProductImages(productId) {
+  const q = query(collection(db, 'brandItem', productId, 'images').withConverter(idConverter));
+  return useCollectionData(q);
+}
+
+
 const getData = async (url) => {
   try {
     if (!url) return null;
-    const response = await fetch(url + "/products.json");
+    const response = await fetch(url + "/products.json?limit=250");
     const data = await response.json();
     return data;
   } catch (error) {
@@ -98,7 +110,7 @@ export function useSizeData() {
   return useCollectionData(q);
 }
 
-function parseProduct(product, brandId) {
+function parseProduct(product, brandData) {
   const {
     id,
     title,
@@ -106,8 +118,8 @@ function parseProduct(product, brandId) {
     body_html,
     product_type,
     tags = [],
-    images = [],
     variants = [],
+    images = [],
   } = product;
 
   const productData = {
@@ -116,22 +128,67 @@ function parseProduct(product, brandId) {
     slug: handle,
     descriptionHtml: body_html,
     productType: product_type,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    status: true,
     tags: tags,
-    brandId,
+    brand: {
+      id: brandData.id,
+      name: brandData.name,
+      image: brandData.image,
+      logo: brandData.logo,
+    },
     createdType: "scrape",
     createdBy: "admin",
-    images,
-    variants,
+    thumbnail: images[0]?.src,
+    price:
+      variants.length > 0
+        ? {
+            currentPrice: Number(variants[0].price),
+            discount: null,
+            mrp: Number(variants[0].price),
+          }
+        : null,
   };
   return productData;
 }
 
-export async function addProducts(products = [], { id, lastScrapedAt }) {
+export async function addProducts(products = [], brandData) {
   try {
     const response = await Promise.all(
-      products.map((product) => {
-        const productData = parseProduct(product, id);
-        return addDoc(collection(db, "brandItem"), productData);
+      products.map(async (product) => {
+        const productData = parseProduct(product, brandData);
+        const docRef = await addDoc(collection(db, "brandItem"), productData);
+        await Promise.all(
+          product?.images.map((image) =>
+            addDoc(collection(db, "brandItem", docRef.id, "images"), {
+              url: image.src,
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+              id: image.id,
+            })
+          )
+        );
+        await Promise.all(
+          product?.variants.map((variant) =>
+            addDoc(collection(db, "brandItem", docRef.id, 'variants'), {
+              ...productData,
+              ...variant,
+              scrapedId: variant.id,
+              status: "created",
+              productId: docRef.id,
+              thumbnail: product?.images[0]?.src,
+              price: {
+                currentPrice: Number(variant.price),
+                discount: null,
+                mrp: Number(variant.price),
+              },
+              stock: {
+                quantity: 10,
+              },
+            })
+          )
+        );
       })
     );
     return response;
@@ -144,6 +201,19 @@ export async function addProducts(products = [], { id, lastScrapedAt }) {
 export async function updateBrandItem(docId, data) {
   try {
     const response = await updateDoc(doc(db, "brandItem", docId), data);
+    return response;
+  } catch (error) {
+    console.log("error", error);
+  }
+  return null;
+}
+
+export async function updateBrandItemVariant(docId, variantId, data) {
+  try {
+    const response = await updateDoc(
+      doc(db, "brandItem", docId, "variants", variantId),
+      data
+    );
     return response;
   } catch (error) {
     console.log("error", error);

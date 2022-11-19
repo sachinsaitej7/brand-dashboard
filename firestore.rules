@@ -63,7 +63,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if request.auth.uid != null; 
       match /images/{document=**} {
-        allow read, write: if true;
+        allow read: if true;
+        allow write: if request.auth.uid != null;
+      }
+      match /variants/{variantId} {
+        allow read: if true;
+        allow write: if request.auth.uid != null;
       }
     }
   }

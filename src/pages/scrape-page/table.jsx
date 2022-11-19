@@ -9,9 +9,9 @@ import {
 import VaraintTable from "./variant-table";
 import {
   useProducts,
-  useScrapeData,
+  // useScrapeData,
   useBrandData,
-  addProducts,
+  // addProducts,
   useCategoryData,
   updateBrandItem,
   useSubcategoryData,
@@ -25,7 +25,7 @@ function ScrapeTable() {
   const [modalVisible, setModalVisible] = useState(false);
   const [brandData] = useBrandData(id);
   const [products, productLoading] = useProducts(id);
-  const [{ data, isLoading }] = useScrapeData(brandData?.website);
+  // const [{ data, isLoading }] = useScrapeData(brandData?.website);
 
   const onClose = () => {
     setModalVisible(false);
@@ -38,10 +38,10 @@ function ScrapeTable() {
         <div>
           <Button
             type='primary'
-            loading={isLoading}
+            loading={false}
             icon={<UploadOutlined />}
             style={{ margin: "16px" }}
-            onClick={() => addProducts(data.products, brandData)}
+            // onClick={() => addProducts(data.products, brandData)}
             disabled={true}
           >
             Fetch Data
@@ -52,6 +52,10 @@ function ScrapeTable() {
         loading={productLoading}
         dataSource={products}
         rowKey='id'
+        size={"large"}
+        pagination={{
+          pageSize: 50,
+        }}
         expandable={{
           expandedRowRender: (record) => <VaraintTable data={record} />,
         }}
@@ -63,7 +67,10 @@ function ScrapeTable() {
           {
             title: "Product Name",
             dataIndex: "name",
-            editable: true,
+            sorter: {
+              compare: (a, b) => a.name.localeCompare(b.name),
+              multiple: 3,
+            },
             render: (text, record) => (
               <Input
                 value={text}
@@ -77,6 +84,10 @@ function ScrapeTable() {
             title: "Product Type",
             dataIndex: "productType",
             editable: true,
+            sorter: {
+              compare: (a, b) => a.productType.localeCompare(b.productType),
+              multiple: 2,
+            },
           },
           {
             title: "tags",
@@ -141,11 +152,13 @@ function ScrapeTable() {
           },
         ]}
       />
-      <ModalImages
-        modalData={rowData}
-        isOpen={modalVisible}
-        onClose={onClose}
-      />
+      {rowData && (
+        <ModalImages
+          modalData={rowData}
+          isOpen={modalVisible}
+          onClose={onClose}
+        />
+      )}
     </div>
   );
 }
@@ -154,7 +167,15 @@ function CategorySingleSelect({ value, id }) {
   const [categoryData, loading] = useCategoryData();
 
   const onSelect = (_, option) => {
-    updateBrandItem(id, { category: option });
+    updateBrandItem(id, {
+      category: {
+        id: option.id,
+        name: option.name,
+        banner: option.banner,
+        slug: option.slug,
+        image: option.image,
+      },
+    });
   };
 
   return (
@@ -174,7 +195,15 @@ function SubcategorySingleSelect({ value, id, categoryId }) {
   const [categoryData, loading] = useSubcategoryData(categoryId);
 
   const onSelect = (_, option) => {
-    updateBrandItem(id, { subcategory: option });
+    updateBrandItem(id, {
+      subcategory: {
+        id: option.id,
+        name: option.name,
+        banner: option.banner,
+        slug: option.slug,
+        image: option.image,
+      },
+    });
   };
 
   return (

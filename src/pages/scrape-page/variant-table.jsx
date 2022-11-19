@@ -2,9 +2,15 @@ import React from "react";
 import { Button, Table, Popconfirm, Select, Cascader, Input } from "antd";
 import { DeleteOutlined } from "@ant-design/icons";
 
-import { updateBrandItem, useColorData, useSizeData } from "./hooks";
+import {
+  updateBrandItemVariant,
+  useColorData,
+  useSizeData,
+  useProductVariants,
+} from "./hooks";
 
 export default function VaraintTable({ data }) {
+  const [variants, loading] = useProductVariants(data.id);
   const columns = [
     {
       title: "ID",
@@ -37,23 +43,25 @@ export default function VaraintTable({ data }) {
     },
     {
       title: "Price",
-      dataIndex: "price",
+      dataIndex: ["price", "currentPrice"],
       key: "price",
       editable: true,
       render: (text, record) => (
-        <Input
-          value={text}
-          onChange={(e) =>
-            updateBrandItem(data.id, {
-              variants: data.variants.map((i) => {
-                if (i.id === record.id) {
-                  return { ...i, price: e.target.value };
-                }
-                return i;
-              }),
-            })
-          }
-        />
+        <>
+          <span style={{ marginBottom: "4px" }}>Scraped Value: {text}</span>
+          <Input
+            value={text}
+            type='number'
+            onChange={(e) =>
+              updateBrandItemVariant(data.id, record.id, {
+                price: {
+                  ...record.price,
+                  currentPrice: Number(e.target.value),
+                },
+              })
+            }
+          />
+        </>
       ),
     },
     {
@@ -88,16 +96,8 @@ export default function VaraintTable({ data }) {
             <Button
               type='outline'
               onClick={() => {
-                updateBrandItem(data.id, {
-                  variants: data.variants.map((i) => {
-                    if (i.id === record.id) {
-                      return {
-                        ...i,
-                        status: "approved",
-                      };
-                    }
-                    return i;
-                  }),
+                updateBrandItemVariant(data.id, record.id, {
+                  status: "approved",
                 });
               }}
               disabled={record.status === "approved"}
@@ -118,11 +118,13 @@ export default function VaraintTable({ data }) {
 
   return (
     <Table
-      dataSource={data.variants}
+      dataSource={variants}
       rowKey='id'
       columns={columns}
       pagination={false}
+      loading={loading}
       editable
+      size='small'
     />
   );
 }
@@ -131,16 +133,13 @@ function ColorSingleSelect({ data, record }) {
   const [colorData, loading] = useColorData();
 
   const onSelect = (_, option) => {
-    updateBrandItem(data.id, {
-      variants: data.variants.map((i) => {
-        if (i.id === record.id) {
-          return {
-            ...i,
-            color: option,
-          };
-        }
-        return i;
-      }),
+    updateBrandItemVariant(data.id, record.id, {
+      color: {
+        id: option.id,
+        name: option.name,
+        description: option.description,
+        hexcode: option.hexcode,
+      },
     });
   };
 
@@ -161,16 +160,13 @@ function SizeSingleSelect({ record, data }) {
   const [sizeData, loading] = useSizeData();
 
   const onSelect = (t, option) => {
-    updateBrandItem(data.id, {
-      variants: data.variants.map((i) => {
-        if (i.id === record.id) {
-          return {
-            ...i,
-            size: { ...option[1], name: t[0], id: option[0].id },
-          };
-        }
-        return i;
-      }),
+    updateBrandItemVariant(data.id, record.id, {
+      size: {
+        id: option[0].id,
+        name: t[0],
+        description: option[0].description,
+        values: option[1].values,
+      },
     });
   };
 
